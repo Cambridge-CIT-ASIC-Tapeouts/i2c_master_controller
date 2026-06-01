@@ -1,27 +1,69 @@
-/*
- * Copyright (c) 2024 Your Name
- * SPDX-License-Identifier: Apache-2.0
- */
-
 `default_nettype none
 
-module tt_um_example (
-    input  wire [7:0] ui_in,    // Dedicated inputs
-    output wire [7:0] uo_out,   // Dedicated outputs
-    input  wire [7:0] uio_in,   // IOs: Input path
-    output wire [7:0] uio_out,  // IOs: Output path
-    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
-    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
-    input  wire       clk,      // clock
-    input  wire       rst_n     // reset_n - low to reset
+module tt_um_kamales_i2c_master (
+    input  wire [7:0] ui_in,
+    output wire [7:0] uo_out,
+    input  wire [7:0] uio_in,
+    output wire [7:0] uio_out,
+    output wire [7:0] uio_oe,
+    input  wire       ena,
+    input  wire       clk,
+    input  wire       rst_n
 );
 
-  // All output pins must be assigned. If not used, assign to 0.
-  assign uo_out  = ui_in + uio_in;  // Example: ou_out is the sum of ui_in and uio_in
-  assign uio_out = 0;
-  assign uio_oe  = 0;
+    reg [3:0] bit_cnt;
+    reg [7:0] shift_reg;
 
-  // List all unused inputs to prevent warnings
-  wire _unused = &{ena, clk, rst_n, 1'b0};
+    reg busy;
+    reg scl;
+    reg sda;
+
+    always @(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
+            bit_cnt   <= 0;
+            shift_reg <= 0;
+            busy      <= 0;
+            scl       <= 1;
+            sda       <= 1;
+        end
+        else begin
+
+            if (!busy && ui_in[0]) begin
+                busy      <= 1;
+                shift_reg <= ui_in;
+                bit_cnt   <= 8;
+                sda       <= 0;      // START
+            end
+            else if (busy) begin
+
+                scl <= ~scl;
+
+                if (scl) begin
+                    sda <= shift_reg[7];
+                    shift_reg <= {shift_reg[6:0],1'b0};
+
+                    if (bit_cnt != 0)
+                        bit_cnt <= bit_cnt - 1;
+                    else begin
+                        busy <= 0;
+                        sda <= 1;
+                    end
+                end
+            end
+        end
+    end
+
+    assign uo_out[0] = busy;
+    assign uo_out[7:1] = 0;
+
+    assign uio_out[0] = sda;
+    assign uio_out[1] = scl;
+    assign uio_out[7:2] = 0;
+
+    assign uio_oe[0] = 1;
+    assign uio_oe[1] = 1;
+    assign uio_oe[7:2] = 0;
+
+    wire _unused = &{ena,uio_in,1'b0};
 
 endmodule
