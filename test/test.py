@@ -11,18 +11,12 @@ async def test_project(dut):
     dut.ena.value = 1
     dut.ui_in.value = 0
     dut.uio_in.value = 0
-    dut.rst_n.value = 0
-
-    await ClockCycles(dut.clk, 5)
-
     dut.rst_n.value = 1
 
-    # Apply test pattern
+    await ClockCycles(dut.clk, 1)
+
     dut.ui_in.value = 0xA5
 
     await ClockCycles(dut.clk, 1)
 
-    # Check output
     assert int(dut.uo_out.value) == 0xA5
-
-    dut._log.info("I2C Master Controller test passed")
