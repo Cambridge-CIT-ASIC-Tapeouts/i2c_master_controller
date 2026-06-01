@@ -9,20 +9,20 @@ async def test_project(dut):
     cocotb.start_soon(clock.start())
 
     dut.ena.value = 1
-    dut.rst_n.value = 0
     dut.ui_in.value = 0
     dut.uio_in.value = 0
+    dut.rst_n.value = 0
 
     await ClockCycles(dut.clk, 5)
 
     dut.rst_n.value = 1
 
-    # Start transfer
-    dut.ui_in.value = 8'hA5
+    # Apply test pattern
+    dut.ui_in.value = 0xA5
 
-    await ClockCycles(dut.clk, 2)
+    await ClockCycles(dut.clk, 1)
 
-    # BUSY bit is uo_out[0]
-    assert int(dut.uo_out.value) != 0
+    # Check output
+    assert int(dut.uo_out.value) == 0xA5
 
-    await ClockCycles(dut.clk, 20)
+    dut._log.info("I2C Master Controller test passed")
