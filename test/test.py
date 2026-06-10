@@ -20,23 +20,19 @@ async def test_i2c_master(dut):
 
     await ClockCycles(dut.clk, 5)
 
-    # Start transaction
-    dut.ui_in.value = 0xA5
+    # Start transfer
+    dut.ui_in.value = 0x01
 
-    await ClockCycles(dut.clk, 40)
+    await ClockCycles(dut.clk, 20)
 
-    busy = int(dut.uo_out.value) & 0x1
-    done = (int(dut.uo_out.value) >> 1) & 0x1
-    ack  = (int(dut.uo_out.value) >> 2) & 0x1
+    busy = int(dut.uo_out.value) & 1
+    done = (int(dut.uo_out.value) >> 1) & 1
+    ack  = (int(dut.uo_out.value) >> 2) & 1
 
     cocotb.log.info(f"BUSY={busy}")
     cocotb.log.info(f"DONE={done}")
-    cocotb.log.info(f"ACK ={ack}")
+    cocotb.log.info(f"ACK={ack}")
 
-    assert done == 1, "Transaction did not complete"
-    assert ack == 1, "ACK was not asserted"
-
-    # SDA and SCL should be driven
-    assert int(dut.uio_oe.value) & 0x03 == 0x03
-
-    cocotb.log.info("TEST PASSED")
+    assert done == 1
+    assert ack == 1
+    assert busy == 0
